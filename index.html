@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JazzTV Web</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body { background: #111; color: white; font-family: sans-serif; margin: 0; }
+        #player-container { position: sticky; top: 0; background: #000; z-index: 10; padding: 10px; text-align: center; border-bottom: 2px solid #333; }
+        video { width: 100%; max-width: 600px; height: auto; max-height: 350px; background: #000; }
+        #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; padding: 15px; }
+        .card { background: #222; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .card:hover { background: #333; transform: scale(1.05); }
+        .card img { width: 100%; height: 80px; object-fit: contain; }
+        .card p { font-size: 12px; margin-top: 5px; color: #ddd; }
+        #status { margin-top: 5px; font-size: 14px; color: #ffcc00; }
+    </style>
+</head>
+<body>
+
+<div id="player-container">
+    <video id="video" controls autoplay></video>
+    <div id="status">Select a Channel</div>
+</div>
+
+<div id="grid"></div>
+
+<script>
+    const API = "/api/index"; // Connect to our backend
+
+    // 1. Load Channels
+    async function loadChannels() {
+        document.getElementById('grid').innerHTML = '<p style="text-align:center; width:100%">Loading Channels...</p>';
+        try {
+            const res = await fetch(`${API}?action=channels`);
+            const channels = await res.json();
+            
+            const grid = document.getElementById('grid');
+            grid.innerHTML = "";
+            
+            channels.forEach(ch => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.onclick = () => playChannel(ch.slug, ch.name);
+                div.innerHTML = `<img src="${ch.logo}"><p>${ch.name}</p>`;
+                grid.appendChild(div);
+            });
+        } catch (e) { alert("Failed to load channels"); }
+    }
+
+    // 2. Play Channel
+    async function playChannel(slug, name) {
+        document.getElementById('status').innerText = "Loading: " + name + "...";
+        try {
+            const res = await fetch(`${API}?action=play&slug=${slug}`);
+            const data = await res.json();
+            
+            if (data.url) {
+                const video = document.getElementById('video');
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(data.url);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+                } else {
+                    video.src = data.url;
+                    video.play();
+                }
+                document.getElementById('status').innerText = "Playing: " + name;
+            } else {
+                alert("Stream not available");
+            }
+        } catch (e) { alert("Error fetching link"); }
+    }
+
+    loadChannels();
+</script>
+
+</body>
+</html>
