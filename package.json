@@ -1,0 +1,8 @@
+{
+  "name": "jazz-proxy",
+  "version": "1.0.0",
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "axios": "^1.6.0"
+  }
+}
